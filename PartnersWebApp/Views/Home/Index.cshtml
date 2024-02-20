@@ -1,0 +1,203 @@
+﻿@using PartnersWebApp.Models
+@model IEnumerable<Partner>
+
+@{
+    ViewBag.Title = "Home page";
+}
+@section AppName{
+    <a class="navbar-brand" href="#">PartnersWebApp</a>}
+
+@section ButtonSection {
+    <a href="@Url.Action("PartnerForm")" class="btn btn-custom ml-2">Add new partner</a>
+}
+
+<head>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+            integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+            crossorigin="anonymous"></script>
+    <script src="../../Scripts/common.js"></script>
+</head>
+<div class="container">
+    <h1>Table of all partners</h1>
+    <table id="partnerTable" class="table table-striped">
+        <thead>
+            <tr>
+                <th style="display: none;">Id</th>
+                <th>Full name</th>
+                <th style="display: none;">Address</th>
+                <th>Partner number</th>
+                <th>Croatian PIN </th>
+                <th>Type of partner</th>
+                <th>Created at</th>
+                <th style="display: none;">Create by user</th>
+                <th>Foreign</th>
+                <th style="display: none;">External code</th>
+                <th>Gender</th>
+                <th style="display: none;">Number of policies</th>
+                <th style="display: none;">Total amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var partner in Model)
+            {
+                <tr data-toggle="modal" data-id="@partner.Id" data-target="#partnerModal">
+                    <td style="display: none;">@partner.Id</td>
+                    <td>@partner.FullName</td>
+                    <td style="display: none;">@partner.Address</td>
+                    <td>@partner.PartnerNumber</td>
+                    <td>@partner.CroatianPIN</td>
+                    <td>@partner.PartnerTypeId</td>
+                    <td>@partner.CreatedAtUtc</td>
+                    <td style="display: none;">@partner.CreateByUser</td>
+                    <td>@partner.IsForeign</td>
+                    <td style="display: none;">@partner.ExternalCode</td>
+                    <td>@partner.Gender</td>
+                    <td data-policies="@partner.NumberOfPolicies" style="display: none;">@partner.NumberOfPolicies</td>
+                    <td data-amount="@partner.TotalAmount"style="display: none;">@partner.TotalAmount</td>
+                    <td>
+                        <button class="btnAddPolicy" data-id="@partner.Id">Add policy</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="modal fade" id="partnerModal" tabindex="-1" role="dialog" aria-labelledby="partnerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="partnerModalLabel">Partner details</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="partnerModalBody">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addPolicyModal" tabindex="-1" role="dialog" aria-labelledby="addPolicyModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addPolicyModalLabel">Add policy</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addPolicyForm">
+                    <div class="form-group">
+                        <label for="partnerId">Partner Id:</label>
+                        <input type="text" class="form-control" id="partnerId" name="partnerId" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="policyNumber">Policy number (10-15 characters):</label>
+                        <input type="text" class="form-control" id="policyNumber" minlength="10" maxlength="15" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">Policy amount:</label>
+                        <input type="number" class="form-control" id="amount" step="0.01" min="0" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<style>
+
+    .modal-content {
+        background-color: #dc3545;
+        color: #ffffff;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+</style>
+
+<script>
+    $(document).ready(function () {
+        $('#partnerTable tbody tr').each(function () {
+            var amount = parseFloat($(this).find('td[data-amount]').data('amount'));
+            var numOfPolicies = parseInt($(this).find('td[data-policies]').data('policies'));
+            console.log(numOfPolicies);
+
+            if (numOfPolicies > 5 || amount > 5000) {
+                $(this).find('td:eq(1)').prepend('<span>*</span> ');
+
+            }
+        });
+    });
+
+    function submitForm(event) {
+        event.preventDefault();
+        var partnerId = document.getElementById('partnerId').value;
+        var policyNumber = document.getElementById('policyNumber').value;
+        var amount = document.getElementById('amount').value;
+
+        $.ajax({
+            type: "POST",
+            url: '/Home/AddNewPolicy',
+            contentType: "application/json; charset=utf-8",
+            data: JSON.stringify({ partnerId: partnerId, policyNumber: policyNumber, amount: amount }),
+            success: function () {
+                location.reload();
+            },
+            error: function (xhr, status, error) {
+                console.error('Error:', error);
+                alert('An error occurred while processing your request.');
+            }
+        });
+    }
+
+    document.getElementById('addPolicyForm').addEventListener('submit', submitForm);
+
+
+
+    $(document).ready(function () {
+
+        $(document).on('click', '#partnerTable tbody tr .btnAddPolicy', function (e) {
+            e.stopPropagation();
+            var partnerId = $(this).data('id');
+            $('#partnerId').val(partnerId);
+            $('#addPolicyModal').modal('show');
+        });
+
+        $(document).on('click', '#partnerTable tbody tr', function () {
+            var partnerName = $(this).find('td:eq(1)').text();
+            var partnerAddress = $(this).find('td:eq(2)').text();
+            var partnerNumber = $(this).find('td:eq(3)').text();
+            var partnerCroatianPIN = $(this).find('td:eq(4)').text();
+            var partnerTypeID = $(this).find('td:eq(5)').text();
+            var partnerCreatedUTC = $(this).find('td:eq(6)').text();
+            var partnerCreatedByUser = $(this).find('td:eq(7)').text();
+            var partnerIsForeign = $(this).find('td:eq(8)').text();
+            var partnerExternalCode = $(this).find('td:eq(9)').text();
+            var partnerGender = $(this).find('td:eq(10)').text();
+            var partnerNumberOfPolicies = $(this).find('td:eq(11)').text();
+            var partnerAmount = $(this).find('td:eq(12)').text();
+
+            $('#partnerModalBody').html(
+                '<p><strong>Full name: </strong> ' + partnerName + '</p>' +
+                '<p><strong>Address: </strong> ' + partnerAddress + '</p>' +
+                '<p><strong>Number: </strong> ' + partnerNumber + '</p>' +
+                '<p><strong>Croatian PIN: </strong> ' + partnerCroatianPIN + '</p>' +
+                '<p><strong>Partner Type ID: </strong> ' + partnerTypeID + '</p>' +
+                '<p><strong>Created at UTC: </strong> ' + partnerCreatedUTC + '</p>' +
+                '<p><strong>Email: </strong> ' + partnerCreatedByUser + '</p>' +
+                '<p><strong>Foreign: </strong> ' + partnerIsForeign + '</p>' +
+                '<p><strong>External code: </strong> ' + partnerExternalCode + '</p>' +
+                '<p><strong>Gender: </strong> ' + partnerGender + '</p>' +
+                '<p><strong>Number of policies: </strong> ' + partnerNumberOfPolicies + '</p>' +
+                '<p><strong>Total amount: </strong> ' + partnerAmount + '</p>');
+
+            $('#partnerModal').modal('show');
+        });
+    });
+</script>
